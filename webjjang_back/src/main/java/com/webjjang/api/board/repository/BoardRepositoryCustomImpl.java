@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -30,7 +31,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom{
                         board.title,
                         board.writer,
                         board.hit,
-                        board.writeDate
+                        board.writedDate
                 )
                 .from(board)
                 .where(search(key, word)) // BooleanBuilder - true || false
@@ -73,6 +74,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom{
     }
 
     @Override
+    // 기본 쿼리 가능 - findById(Long no) -> Factory 보안 때문에
     public Tuple getBoard(Long no) {
         return queryFactory
                 .select(
@@ -80,7 +82,7 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom{
                         board.title,
                         board.content,
                         board.writer,
-                        board.writeDate,
+                        board.writedDate,
                         board.hit
                 )
                 .from(board)
@@ -89,7 +91,9 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom{
     }
 
     @Override
-    @Transactional
+    // 1 방법. : 기본 CRUD의 수정은 먼저 데이터를 꺼내온다(findById()) -> 꺼내온 데이터 변경(JAVA에서)
+    // -> 수정된 내용을 DB에 저장(save()) : @LastModifedDate 수정날짜 자동 변경 됨
+    // 2. QueryFactory 사용 : 수정 쿼리 실행 - @LastModifedDate 수정날짜 자동 변경 안됨
     public Long increaseHit(Long no) {
         return queryFactory
                 .update(board)
@@ -99,19 +103,22 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom{
     }
 
     @Override
-    @Transactional
     public Board writeBoard(Board boardData) {
         return qBoardRepository.save(boardData);
     }
 
     @Override
-    @Transactional
+    // 1 방법. : 기본 CRUD의 수정은 먼저 데이터를 꺼내온다(findById()) -> 꺼내온 데이터 변경(JAVA에서)
+    // -> 수정된 내용을 DB에 저장(save()) : @LastModifedDate 수정날짜 자동 변경 됨
+    // 2. QueryFactory 사용 : 수정 쿼리 실행 - @LastModifedDate 수정날짜 자동 변경 안됨
     public Long updateBoard(Board boardData) {
         return queryFactory
                 .update(board)
                 .set(board.title, boardData.getTitle())
                 .set(board.content, boardData.getContent())
                 .set(board.writer, boardData.getWriter())
+                // queryFactory를 이용하면 자동 수정일 안됨.
+                .set(board.updatedDate, LocalDateTime.now())
                 .where(
                         board.no.eq(boardData.getNo()),
                         board.pw.eq(boardData.getPw())
@@ -120,14 +127,14 @@ public class BoardRepositoryCustomImpl implements BoardRepositoryCustom{
     }
 
     @Override
-    @Transactional
     public Long deleteBoard(Board boardData) {
-        return queryFactory
-                .delete(board)
-                .where(
-                        board.no.eq(boardData.getNo()),
-                        board.pw.eq(boardData.getPw())
-                )
-                .execute();
+//        return queryFactory
+//                .delete(board)
+//                .where(
+//                        board.no.eq(boardData.getNo()),
+//                        board.pw.eq(boardData.getPw())
+//                )
+//                .execute();
+        return qBoardRepository.deleteByNoAndPw(boardData.getNo(), boardData.getPw());
     }
 }

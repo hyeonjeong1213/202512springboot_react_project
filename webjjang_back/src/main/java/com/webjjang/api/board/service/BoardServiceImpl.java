@@ -6,7 +6,9 @@ import com.webjjang.api.board.repository.BoardRepositoryCustom;
 import com.webjjang.api.board.vo.BoardVO;
 import com.webjjang.api.util.page.PageObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -17,6 +19,9 @@ public class BoardServiceImpl implements BoardService {
 
     @Autowired
     private  BoardRepositoryCustom boardRepositoryCustom;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public List<BoardVO> list(PageObject pageObject) {
@@ -47,6 +52,7 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
+    @Transactional
     public BoardVO view(Long no, Integer inc) {
         if(inc == 1) boardRepositoryCustom.increaseHit(no);
         Tuple tuple = boardRepositoryCustom.getBoard(no);
@@ -55,8 +61,8 @@ public class BoardServiceImpl implements BoardService {
         vo.setTitle(tuple.get(1, String.class));
         vo.setContent(tuple.get(2, String.class));
         vo.setWriter(tuple.get(3, String.class));
-        vo.setHit(tuple.get(4, Long.class));
-        vo.setWriteDate(tuple.get(5, LocalDateTime.class));
+        vo.setWriteDate(tuple.get(4, LocalDateTime.class));
+        vo.setHit(tuple.get(5, Long.class));
         return vo;
     }
 
@@ -68,8 +74,8 @@ public class BoardServiceImpl implements BoardService {
         vo.setContent(board.getContent());
         vo.setWriter(board.getWriter());
         vo.setHit(board.getHit());
-        vo.setWriteDate(board.getWriteDate());
-        vo.setUpdateDate(board.getUpdateDate());
+        vo.setWriteDate(board.getWritedDate());
+        vo.setUpdateDate(board.getUpdatedDate());
         vo.setPw(board.getPw());
         return vo;
     }
@@ -81,13 +87,14 @@ public class BoardServiceImpl implements BoardService {
         board.setTitle(vo.getTitle());
         board.setContent(vo.getContent());
         board.setWriter(vo.getWriter());
-        board.setWriteDate(vo.getWriteDate());
-        board.setUpdateDate(vo.getUpdateDate());
-        board.setPw(vo.getPw());
+        board.setWritedDate(vo.getWriteDate());
+        board.setUpdatedDate(vo.getUpdateDate());
+        board.setPw((passwordEncoder.encode(vo.getPw()));
         return board;
     }
 
     @Override
+    @Transactional
     public BoardVO write(BoardVO vo) {
         Board board = boardRepositoryCustom.writeBoard(
                 boardVOToBoard(vo) // BoardVO -> Board
@@ -97,11 +104,13 @@ public class BoardServiceImpl implements BoardService {
     }
 
     @Override
+    @Transactional
     public Long update(BoardVO vo) {
         return boardRepositoryCustom.updateBoard(boardVOToBoard(vo));
     }
 
     @Override
+    @Transactional
     public Long delete(BoardVO vo) {
         return boardRepositoryCustom.deleteBoard(boardVOToBoard(vo));
     }
