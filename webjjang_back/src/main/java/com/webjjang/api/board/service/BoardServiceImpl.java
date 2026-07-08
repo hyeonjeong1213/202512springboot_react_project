@@ -136,9 +136,17 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional
     public Long delete(BoardVO vo) {
-        Long result = boardRepositoryCustom.deleteBoard(boardVOToBoard(vo));
-        log.info("[delete] 실행 결과 : result = {}", result);
-        if(result==0) throw new RuntimeException("일반 게시판 삭제 오류 - 글번호나 비밀번호 확인");
-        return result;
+        Optional<Board> optional=qBoardRepository.findById(vo.getNo());
+
+        if(optional.isEmpty())
+            throw new RuntimeException("일반 게시판 삭제 오류 - 글번호 확인");
+
+        Board board = optional.get();
+
+        if(!passwordEncoder.matches(vo.getPw(), board.getPw()))
+            throw new RuntimeException("일반 게시판 삭제 오류 - 글번호나 비밀번호 확인");
+
+        boardRepositoryCustom.deleteBoard(vo.getNo());
+        return 1L;
     }
 }
